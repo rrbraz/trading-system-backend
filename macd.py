@@ -3,7 +3,7 @@ import datetime
 import numpy as np
 import requests_cache
 from pandas_datareader import data as web
-
+import json
 
 def load_df(stock, source, start, end):
     expire_after = datetime.timedelta(hours=1)
@@ -11,6 +11,7 @@ def load_df(stock, source, start, end):
     session.headers = {'User-Agent': 'insomnia/2021.5.2', 'Accept': 'application/json;charset=utf-8'}
 
     df = web.DataReader(stock, source, start=start, end=end, session=session)
+
     return df
 
 
@@ -84,11 +85,21 @@ def macd(df, window_small=12, window_large=26):
 
     avaliation = avaliate_macd(df, window_small, window_large)
 
+    candle_data = {
+    
+      'date': list(df.index),
+      'high': list(df.High),
+      'low': list(df.Low),
+      'open': list(df.Open),
+      'close': list(df.Close),
+    }; 
+
     return {
         'trace_small': trace_small,
         'trace_large': trace_large,
         'trace_macd': trace_macd,
-        'avaliation': avaliation
+        'avaliation': avaliation,
+        'candle_data' : candle_data,
     }
 
 
