@@ -30,6 +30,7 @@ def read_root():
 @app.get("/macd/{source}/{stock}")
 def get_macd(source: str, stock: str, start: date, end: date, small_avg: int, larg_avg: int):
     df = load_df(stock, source, start, end)
+    print(df)
     result = macd(df, window_small=small_avg, window_large=larg_avg)
     return result
 

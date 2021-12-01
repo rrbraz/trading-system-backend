@@ -1,16 +1,44 @@
 import datetime
+import os
+from io import StringIO
 
 import numpy as np
+import pandas as pd
+import requests
 import requests_cache
 from pandas_datareader import data as web
-import json
+
 
 def load_df(stock, source, start, end):
     expire_after = datetime.timedelta(hours=1)
-    session = requests_cache.CachedSession(cache_name='cache', backend='sqlite', expire_after=expire_after)
-    session.headers = {'User-Agent': 'insomnia/2021.5.2', 'Accept': 'application/json;charset=utf-8'}
+    session = requests_cache.CachedSession(cache_name='cache', backend='sqlite',
+                                           expire_after=expire_after)
+    session.headers = {
+        'User-Agent': 'insomnia/2021.5.2',
+        'Accept': 'application/json;charset=utf-8'
+    }
 
-    df = web.DataReader(stock, source, start=start, end=end, session=session)
+    if source.startswith("av-"):
+        api_key = os.getenv('ALPHAVANTAGE_API_KEY')
+    else:
+        api_key = None
+
+    if source == "av-intraday":
+        url = f'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={stock}&interval=15min&apikey={api_key}&outputsize=full&datatype=csv'
+        r = requests.get(url)
+        df = pd.read_csv(StringIO(r.text), index_col=0)
+    else:
+        df = web.DataReader(stock, source, start=start, end=end, session=session)
+
+    print(df)
+
+    df.rename(columns={
+        'open': 'Open',
+        'high': 'High',
+        'low': 'Low',
+        'close': 'Close',
+        'volume': 'Volume',
+    }, inplace=True)
 
     return df
 
@@ -21,7 +49,8 @@ def avaliate_macd(df, window_small, window_large):
     # Calculate and define moving average of window_large periods
     avg_large = df.Close.ewm(span=window_large, min_periods=window_large).mean()
     df['Trading Sign'] = np.where(avg_small > avg_large, 1, -1)
-    df['Transaction'] = df['Trading Sign'].rolling(2).apply(lambda v: -v.prod(), raw=True)
+    df['Transaction'] = df['Trading Sign'].rolling(2).apply(lambda v: -v.prod(),
+                                                            raw=True)
     df['Daily Change'] = df.Close - df.Close.shift(1)
     df['Daily Trading Profit'] = df['Trading Sign'] * df['Daily Change']
 
@@ -86,20 +115,20 @@ def macd(df, window_small=12, window_large=26):
     avaliation = avaliate_macd(df, window_small, window_large)
 
     candle_data = {
-    
-      'date': list(df.index),
-      'high': list(df.High),
-      'low': list(df.Low),
-      'open': list(df.Open),
-      'close': list(df.Close),
-    }; 
+
+        'date': list(df.index),
+        'high': list(df.High),
+        'low': list(df.Low),
+        'open': list(df.Open),
+        'close': list(df.Close),
+    };
 
     return {
         'trace_small': trace_small,
         'trace_large': trace_large,
         'trace_macd': trace_macd,
         'avaliation': avaliation,
-        'candle_data' : candle_data,
+        'candle_data': candle_data,
     }
 
 
@@ -107,7 +136,7 @@ def best_macd_search(df, min_window, max_window, score_attr):
     highest_score = float('-inf')
     best_pair = None
 
-    for window_small in range(min_window, max_window-1):
+    for window_small in range(min_window, max_window - 1):
         for window_large in range(window_small + 1, max_window):
             avaliation = avaliate_macd(df, window_small, window_large)
             score = avaliation[score_attr]
