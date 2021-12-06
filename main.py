@@ -97,12 +97,9 @@ def get_decision_tree(source: str, stock: str, start: date, end: date, series_si
 #   "next_value": identico ao do get_decision_tree, nesse caso é o do melhor modelo
 # }
 @app.get("/decision-tree-brutef/{source}/{stock}")
-def get_decision_tree_bruteforce(source: str, stock: str, start: date, end: date, series_size: int, ranges: list):
+def get_decision_tree_bruteforce(source: str, stock: str, start: date, end: date, ranges: list):
 
     df = load_df(stock, source, start, end)
-
-    if(series_size > len(df)):
-        return "Not enough data for the given series size."
 
     # Ajusta indice e data pois as funções pressupõem que há uma coluna Dates e que o índice é numérico
     df["Dates"] = df.index
