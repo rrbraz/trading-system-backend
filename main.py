@@ -97,10 +97,7 @@ def get_decision_tree(source: str, stock: str, start: date, end: date, series_si
 #   "next_value": identico ao do get_decision_tree, nesse caso é o do melhor modelo
 # }
 @app.get("/decision-tree-brutef/{source}/{stock}")
-def get_decision_tree_bruteforce(source: str, stock: str, start: date, end: date, series_size: int): #,ranges: list): #descomentar
-
-    # Exemplo, remover quando o parametro estiver correto no front
-    ranges = [5,10,15]
+def get_decision_tree_bruteforce(source: str, stock: str, start: date, end: date, series_size: int, ranges: list):
 
     df = load_df(stock, source, start, end)
 
